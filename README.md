@@ -23,8 +23,8 @@ Install my-project with npm
 
 ## Screenshots
 
-![App Screenshot](![tts](https://github.com/user-attachments/assets/6acca6ea-5709-49f7-b4d7-0c3a1633c995)
-)
+![App Screenshot](https://github.com/user-attachments/assets/6acca6ea-5709-49f7-b4d7-0c3a1633c995)
+
 
 
 ## Tech Stack
