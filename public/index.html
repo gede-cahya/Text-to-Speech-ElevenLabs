@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+
+    <title>TTS ElevenLabs</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body
+    class="min-h-screen bg-gray-100 flex flex-col items-center justify-start py-10 px-4"
+  >
+    <h1 class="text-3xl font-bold mb-6 text-gray-800">Text to Speech 🎤</h1>
+
+    <div class="bg-white p-6 rounded-xl shadow-md w-full max-w-xl space-y-4">
+      <label class="block font-medium text-gray-700">Teks</label>
+      <textarea
+        id="text"
+        rows="4"
+        maxlength="2000"
+        placeholder="Tulis teks di sini..."
+        class="w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+      ></textarea>
+      <p class="text-sm text-gray-500">
+        <span id="charCount">0</span>/2000 karakter
+      </p>
+
+      <label class="block font-medium text-gray-700">Filter Suara</label>
+      <input
+        type="text"
+        id="filter"
+        placeholder="Cari suara..."
+        class="w-full p-2 border rounded-md"
+      />
+
+      <label class="block font-medium text-gray-700">Pilih Suara</label>
+      <select id="voiceSelect" class="w-full p-2 border rounded-md"></select>
+
+      <div class="flex items-center gap-4">
+        <button
+          onclick="generateTTS()"
+          class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition"
+        >
+          🔊 Putar
+        </button>
+        <span id="loading" class="text-gray-600 hidden"
+          >🔄 Sedang memproses...</span
+        >
+      </div>
+
+      <audio id="player" class="w-full mt-4" controls></audio>
+    </div>
+
+    <script>
+      tailwind.config = {
+        darkMode: "media", // atau 'class'
+      };
+      let voices = [];
+
+      async function fetchVoices() {
+        const res = await fetch("/api/voices");
+        const data = await res.json();
+        voices = data.voices;
+        populateVoiceList();
+      }
+
+      function populateVoiceList(filter = "") {
+        const select = document.getElementById("voiceSelect");
+        select.innerHTML = "";
+
+        voices
+          .filter(
+            (v) =>
+              v.name.toLowerCase().includes(filter.toLowerCase()) ||
+              v.labels?.gender?.toLowerCase().includes(filter.toLowerCase())
+          )
+          .forEach((voice) => {
+            const option = document.createElement("option");
+            option.value = voice.voice_id;
+            option.textContent = `${voice.name} (${
+              voice.labels?.gender || "Unknown"
+            })`;
+            select.appendChild(option);
+          });
+      }
+
+      document.getElementById("filter").addEventListener("input", (e) => {
+        populateVoiceList(e.target.value);
+      });
+
+      async function generateTTS() {
+        const text = document.getElementById("text").value;
+        const voice_id = document.getElementById("voiceSelect").value;
+        const loading = document.getElementById("loading");
+
+        loading.style.display = "inline";
+        try {
+          const response = await fetch("/api/tts", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ text, voice_id }),
+          });
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+          const player = document.getElementById("player");
+          player.src = url;
+          player.play();
+        } catch (err) {
+          alert("Terjadi kesalahan saat memproses suara.");
+          console.error(err);
+        } finally {
+          loading.style.display = "none";
+        }
+      }
+
+      fetchVoices();
+      const textArea = document.getElementById("text");
+      const charCount = document.getElementById("charCount");
+
+      textArea.addEventListener("input", () => {
+        charCount.textContent = textArea.value.length;
+      });
+
+      async function generateTTS() {
+        const text = textArea.value;
+        const voice_id = document.getElementById("voiceSelect").value;
+        const loading = document.getElementById("loading");
+
+        if (text.length === 0) {
+          alert("Teks tidak boleh kosong.");
+          return;
+        }
+
+        if (text.length > 2000) {
+          alert("Teks terlalu panjang. Maksimum 2000 karakter.");
+          return;
+        }
+
+        loading.style.display = "inline";
+        try {
+          const response = await fetch("/api/tts", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ text, voice_id }),
+          });
+
+          if (!response.ok) {
+            const err = await response.text();
+            throw new Error(err);
+          }
+
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+          const player = document.getElementById("player");
+          player.src = url;
+          player.play();
+        } catch (err) {
+          alert("Gagal menghasilkan audio: " + err.message);
+        } finally {
+          loading.style.display = "none";
+        }
+      }
+    </script>
+  </body>
+</html>
